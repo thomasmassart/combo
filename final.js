@@ -31119,7 +31119,8 @@ function($compile)
 			{
 				setTimeout(function()
 				{
-					myScroll.updateCache(start, scope.list);
+					if(typeof scope.list !== 'undefined')
+						myScroll.updateCache(start, scope.list);
 				}, 50);
 			}
 
