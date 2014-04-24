@@ -14,7 +14,7 @@ version="1.0">
 	<preference name="detect-data-types" value="false" />
 	<preference name="phonegap-version" value="3.1.0" />
 	<preference name="ios-statusbarstyle" value="black-opaque" />
-	<preference name="target-device" value="handset" />
+	<preference name="target-device" value="tablet" />
 	
 	<gap:platform name="ios" />
 </widget>
