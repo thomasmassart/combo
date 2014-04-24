@@ -30043,7 +30043,7 @@ var properties = {};
 var DEBUG = false;
 properties.key = 'none';
 properties.server_name = 'http://localhost:8500/';
-//properties.server_name = 'http://reflex.starwoodhotels.com/';
+properties.server_name = 'http://reflex.starwoodhotels.com/';
 properties.login = 'tmassart';
 
 properties.firstReport = 'franchised-dashboard-page';
