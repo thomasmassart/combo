@@ -17,4 +17,7 @@ version="1.0">
 	<preference name="target-device" value="tablet" />
 	
 	<gap:platform name="ios" />
+	
+	<gap:plugin name="org.apache.cordova.network-information" version="0.2.7" />
+	
 </widget>

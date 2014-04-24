@@ -30061,6 +30061,7 @@ function()
 
 function onDeviceReady()
 {
+	angular.bootstrap(document, ['Combo']);
 };
 document.addEventListener("deviceready", onDeviceReady, false);
 
@@ -30109,121 +30110,6 @@ function($rootScope) {
 	}
 
 	return Application;
-}]);
-
-app.factory('Server', ['$rootScope', '$timeout',
-function($rootScope, $timeout)
-{
-	var ajax = function(cffunction, successFn, errorFunction, myObject, errorHeader)
-	{
-		$.ajax({
-			type : "POST",
-			url : properties.server_name + "ReflexRLcfc/json.cfc?method=" + cffunction,
-			data : myObject,
-			dataType : "json",
-			timeout : 15000,
-			success : function(data)
-			{
-				$timeout(function()
-				{
-					if(typeof myObject.key != 'undefined' && myObject.key != properties.key){
-						return;
-					}
-					if (data == 400) {
-						properties.key = 'MUST_LOGIN';
-						if(errorFunction)errorFunction(400);
-						$rootScope.$emit(Events.LoginOpen);
-					}
-					else {
-						successFn(data);
-					}
-				}, 0);
-			},
-			error : function(XMLHttpRequest, textStatus, errorThrown)
-			{
-				var obj = myObject;
-				errorFunction("An error occured : " + textStatus + " => " + errorHeader + " - " + errorThrown);
-			}
-		});
-	}
-	function formatData(data)
-	{
-		var result = {};
-		if (data == null)
-			return null;
-		if (data.COLUMNS != null) {
-			result = [];
-			var titles = data.COLUMNS;
-			var content = data.DATA;
-			for (var i = 0; i < content.length; i++) {
-				result[i] = {};
-				for (var j = 0; j < titles.length; j++) {
-					result[i][titles[j]] = content[i][j];
-				}
-			}
-		}
-		else if ($.isArray(data) || $.isPlainObject(data)) {
-			$.each(data, function(key, element)
-			{
-				result[key] = formatData(element);
-			});
-		}
-		else {
-			return data;
-		}
-		return result;
-	}
-
-	return {
-		auth : function(login, password, rtnFunction, errorFunction)
-		{
-			var myObject = new Object();
-			myObject.login = login;
-			myObject.password = password;
-			var success = function(data)
-			{
-				rtnFunction(formatData(data));
-			}
-			ajax('auth', success, errorFunction, myObject, 'Auth');
-		},
-		getData : function(path, method, args, rtnFunction, errorFunction, num)
-		{
-			if(typeof num == 'undefined')
-				num = 0;
-			var myObject = new Object();
-			myObject.path = path;
-			myObject.methodName = method;
-			myObject.key = properties.key;
-			myObject.argsToPass = JSON.stringify(args);
-
-			if ( typeof DEBUG !== 'undefined' && DEBUG) {
-				$timeout(function()
-				{
-					var fake = FakeData[path + "." + method + num];
-					if (fake == null) {
-						var success = function(data)
-						{
-							Debug.displayAsJson(path + "." + method + num, formatData(data));
-							rtnFunction(formatData(data), num);
-						}
-						ajax('doJson', success, errorFunction, myObject, "(" + path + "[" + method + "])");
-					}
-					else {
-						var data = {data : fake}
-						var sendFake = $.extend(true, {}, data);
-						rtnFunction(sendFake.data, num);
-					}
-				}, 0);
-			}
-			else {
-				var success = function(data)
-				{
-					rtnFunction(formatData(data), num);
-				}
-				ajax('doJson', success, errorFunction, myObject, "(" + path + "[" + method + "])");
-			}
-		}
-	}
 }]);
 
 app.factory('Utils', [
@@ -31035,7 +30921,7 @@ function($rootScope, $sce, $document, $timeout)
 		restrict : 'A',
 		transclude : true,
 		replace : true,
-		template : '<div ng-show="visibility" class="alert-panel" ng-bind-html="content"></div>',
+		template : '<div ng-show="visibility" class="alert-panel ng-hide" ng-bind-html="content"></div>',
 		scope : {},
 		link : function(scope, element, attrs)
 		{
@@ -31231,8 +31117,8 @@ function($rootScope)
 }]); 
 'use strict';
 
-app.directive('pageModule', ['$rootScope', '$compile', 'Application', 'OptionManager', '$timeout', 'ReportManager',
-function($rootScope, $compile, Application, OptionManager, $timeout, ReportManager)
+app.directive('pageModule', ['$rootScope', '$compile', 'Application', 'OptionManager', '$timeout', 'ReportManager', 'Server',
+function($rootScope, $compile, Application, OptionManager, $timeout, ReportManager, Server)
 {
 	return {
 		templateUrl : 'scripts/core/directives/page-module/PageModule.html',
@@ -31266,6 +31152,15 @@ function($rootScope, $compile, Application, OptionManager, $timeout, ReportManag
 			}, function()
 			{
 				init();
+			});
+			
+			scope.$watch(function()
+			{
+				return Server.OFFLINE
+			}, function()
+			{
+				if(!Server.OFFLINE)
+					init();
 			});
 			
 			$rootScope.$on(Events.HotelChanged, function()
@@ -31308,7 +31203,7 @@ function($rootScope, $compile, Application, OptionManager, $timeout, ReportManag
 					return;
 				}
 				
-				if (!Application.APPLICATION_READY)
+				if (Server.OFFLINE || !Application.APPLICATION_READY)
 					return;
 				
 				if (scope.switchPage) {
@@ -31588,6 +31483,181 @@ function($rootScope, $interval, $compile, ngTableParams, DataManager, Applicatio
 			};
 
 			wait(true);
+		}
+	};
+}]);
+
+app.factory('Server', ['$rootScope', '$timeout',
+function($rootScope, $timeout)
+{
+	var Server = {};
+	
+	Server.OFFLINE = false;	
+	
+	var ajax = function(cffunction, successFn, errorFunction, myObject, errorHeader)
+	{
+		if(Server.checkConnection()){
+			$.ajax({
+				type : "POST",
+				url : properties.server_name + "ReflexRLcfc/json.cfc?method=" + cffunction,
+				data : myObject,
+				dataType : "json",
+				timeout : 15000,
+				success : function(data)
+				{
+					$timeout(function()
+					{
+						if(typeof myObject.key != 'undefined' && myObject.key != properties.key){
+							return;
+						}
+						if (data == 400) {
+							properties.key = 'MUST_LOGIN';
+							if(errorFunction)errorFunction(400);
+							$rootScope.$emit(Events.LoginOpen);
+						}
+						else {
+							successFn(data);
+						}
+					}, 0);
+				},
+				error : function(XMLHttpRequest, textStatus, errorThrown)
+				{
+					var obj = myObject;
+					errorFunction("An error occured : " + textStatus + " => " + errorHeader + " - " + errorThrown);
+				}
+			});
+		}
+		else {
+			Server.OFFLINE = true;
+		}
+	}
+	function formatData(data)
+	{
+		var result = {};
+		if (data == null)
+			return null;
+		if (data.COLUMNS != null) {
+			result = [];
+			var titles = data.COLUMNS;
+			var content = data.DATA;
+			for (var i = 0; i < content.length; i++) {
+				result[i] = {};
+				for (var j = 0; j < titles.length; j++) {
+					result[i][titles[j]] = content[i][j];
+				}
+			}
+		}
+		else if ($.isArray(data) || $.isPlainObject(data)) {
+			$.each(data, function(key, element)
+			{
+				result[key] = formatData(element);
+			});
+		}
+		else {
+			return data;
+		}
+		return result;
+	}
+
+	Server.auth = function(login, password, rtnFunction, errorFunction)
+	{
+		var myObject = new Object();
+		myObject.login = login;
+		myObject.password = password;
+		var success = function(data)
+		{
+			rtnFunction(formatData(data));
+		}
+		ajax('auth', success, errorFunction, myObject, 'Auth');
+	}
+		
+	Server.getData = function(path, method, args, rtnFunction, errorFunction, num)
+	{
+		if(typeof num == 'undefined')
+			num = 0;
+		var myObject = new Object();
+		myObject.path = path;
+		myObject.methodName = method;
+		myObject.key = properties.key;
+		myObject.argsToPass = JSON.stringify(args);
+
+		if ( typeof DEBUG !== 'undefined' && DEBUG) {
+			$timeout(function()
+			{
+				var fake = FakeData[path + "." + method + num];
+				if (fake == null) {
+					var success = function(data)
+					{
+						Debug.displayAsJson(path + "." + method + num, formatData(data));
+						rtnFunction(formatData(data), num);
+					}
+					ajax('doJson', success, errorFunction, myObject, "(" + path + "[" + method + "])");
+				}
+				else {
+					var data = {data : fake}
+					var sendFake = $.extend(true, {}, data);
+					rtnFunction(sendFake.data, num);
+				}
+			}, 0);
+		}
+		else {
+			var success = function(data)
+			{
+				rtnFunction(formatData(data), num);
+			}
+			ajax('doJson', success, errorFunction, myObject, "(" + path + "[" + method + "])");
+		}
+	}
+	
+	Server.checkConnection = function() {
+		if ( typeof navigator.connection == 'undefined')
+			return true;
+
+		var networkState = navigator.connection.type;
+		
+		if(networkState == Connection.UNKNOWN || networkState == Connection.NONE)
+			return false;
+		
+		return true;
+	}
+	
+	return Server;
+}]);
+
+app.directive('serverView', ['Server', '$timeout',
+function(Server, $timeout)
+{
+	return {
+		restrict : 'A',
+		replace : true,
+		templateUrl : 'scripts/core/directives/server/ServerView.html',
+		scope : {},
+		link : function(scope, element, attrs)
+		{
+			scope.visibility = false;
+
+			scope.$watch(function()
+			{
+				return Server.OFFLINE
+			}, function()
+			{
+				scope.visibility = Server.OFFLINE;
+			});
+			
+			var backOnline = function(){
+				$timeout(
+					function(){
+						Server.OFFLINE = false;
+					}
+				,0);
+			}
+			document.addEventListener("online", backOnline, false);
+			
+			scope.retry = function(){
+				if(Server.checkConnection()){
+					Server.OFFLINE = false;
+				}
+			}
 		}
 	};
 }]);

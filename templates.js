@@ -1,7 +1,7 @@
 app.run(['$templateCache', function($templateCache){  'use strict';
 
   $templateCache.put('views/app.html',
-    "<div class=app><div page-module=\"\"></div><div ng-include=\"'views/login.html'\"></div><div panel-module=hotel-filter></div><div panel-module=option-panel></div><div panel-module=page-menu></div><div main-menu=\"\"></div><div alert=\"\"></div></div>"
+    "<div class=app><div page-module=\"\"></div><div ng-include=\"'views/login.html'\"></div><div panel-module=hotel-filter></div><div panel-module=option-panel></div><div panel-module=page-menu></div><div main-menu=\"\"></div><div alert=\"\"></div><div server-view=\"\"></div></div>"
   );
 
 
@@ -37,6 +37,11 @@ app.run(['$templateCache', function($templateCache){  'use strict';
 
   $templateCache.put('scripts/core/directives/report-module/report-module.html',
     "<div id={{reportModule}} ng-class=reportStatus><div ng-show=wait class=report-module-message><span ng-bind=text></span></div><div class=report-module ng-hide=wait></div></div>"
+  );
+
+
+  $templateCache.put('scripts/core/directives/server/ServerView.html',
+    "<div ng-show=visibility class=\"server-view ng-hide popup\"><div class=server-box><h2>Your Device is offline</h2><p>Please check your connection settings</p><a class=\"btn btn-primary\" ng-click=login()>Refresh</a></div></div>"
   );
 
 
