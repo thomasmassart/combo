@@ -1,12 +1,7 @@
 app.run(['$templateCache', function($templateCache){  'use strict';
 
   $templateCache.put('views/app.html',
-    "<div class=app><div page-module=\"\"></div><div ng-include=\"'views/login.html'\"></div><div panel-module=hotel-filter></div><div panel-module=option-panel></div><div panel-module=page-menu></div><div main-menu=\"\"></div><div alert=\"\"></div><div server-view=\"\"></div></div>"
-  );
-
-
-  $templateCache.put('views/login.html',
-    "<div id=login ng-controller=LoginCtrl ng-show=visibility class=popup><div id=login-box><h2>Please Login :</h2><div class=form-group><input class=form-control id=login ng-model=user.login placeholder=\"StarwoodOne ID\"></div><div class=form-group><input type=password class=form-control id=password ng-model=user.password placeholder=Password></div><a class=\"btn btn-primary\" ng-click=login()>Login</a></div><div class=spinner-background ng-show=serverWait spinner=\"\"></div></div>"
+    "<div class=app application=\"\"><div page-module=\"\"></div><div panel-module=hotel-filter></div><div panel-module=option-panel></div><div panel-module=page-menu></div><div main-menu=\"\"></div><div alert=\"\"></div><div login=\"\"></div><div server-view=\"\"></div></div>"
   );
 
 
@@ -17,6 +12,11 @@ app.run(['$templateCache', function($templateCache){  'use strict';
 
   $templateCache.put('scripts/core/directives/legend/legend.html',
     "<div class=legend-directive><div class=legend-data bindonce=\"\" ng-repeat=\"elt in series\"><div class=legend-data-{{elt.type}} bo-style=\"{backgroundColor : elt.color}\"></div><span bo-text=elt.name></span></div></div>"
+  );
+
+
+  $templateCache.put('scripts/core/directives/login/Login.html',
+    "<div id=login ng-show=visibility class=popup><div id=login-box><h2>Please Login :</h2><div class=form-group><input class=form-control id=login ng-model=user.login placeholder=\"StarwoodOne ID\"></div><div class=form-group><input type=password class=form-control id=password ng-model=user.password placeholder=Password></div><a class=\"btn btn-primary\" ng-click=login()>Login</a></div><div class=spinner-background ng-show=serverWait spinner=\"\"></div></div>"
   );
 
 

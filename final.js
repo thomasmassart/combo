@@ -30083,164 +30083,6 @@ Highcharts.setOptions({
         }
     }
 });
-app.factory('Application', ['$rootScope',
-function($rootScope) {
-	
-	var Application = {};
-	
-	var counter = 0;
-	
-	Application.APPLICATION_READY = false;
-	Application.OPTION_READY = false;
-	Application.SETTINGS_READY = false;
-	
-	Application.optionReady = function() {
-		Application.OPTION_READY = true;
-		checkAppReady();
-	}
-	
-	Application.settingsReady = function() {
-		Application.SETTINGS_READY = true;
-		checkAppReady();
-	}
-	
-	var checkAppReady = function(){
-		if(Application.OPTION_READY && Application.SETTINGS_READY)
-			Application.APPLICATION_READY = true;
-	}
-
-	return Application;
-}]);
-
-app.factory('Utils', [
-function()
-{
-
-	var Utils = {};
-
-	Utils.formatNumber = function(num, format, passed_obj)
-	{
-		var flt = parseFloat(num), sign = "", unit = "";
-
-		var obj = {
-			fixed : -1,
-			plusVisible : false,
-			zeroHidden : null,
-			floor : false,
-			parentheses : false
-		}
-
-		if (num == null)
-			return "n/a";
-
-		if (passed_obj) {
-			$.each(passed_obj, function(i, n)
-			{
-				obj[i] = n;
-			});
-		}
-
-		if (obj.plusVisible && flt >= 0)
-			sign = "+";
-		if (obj.zeroHidden != null && flt == 0)
-			return obj.zeroHidden;
-
-		switch(format)
-		{
-			case "FIXED":
-				obj.fixed = (obj.fixed < 0 ? 2 : obj.fixed);
-				break;
-			case "FIXED1":
-				obj.fixed = (obj.fixed < 0 ? 1 : obj.fixed);
-				break;
-			case "PERCENT":
-				flt *= 100;
-				obj.fixed = (obj.fixed < 0 ? 1 : obj.fixed);
-				unit = "%";
-				break;
-			case "PERCENT0":
-				flt *= 100;
-				obj.fixed = (obj.fixed < 0 ? 0 : obj.fixed);
-				unit = "%";
-				break;
-			case "POINT":
-				flt *= 100;
-				obj.fixed = (obj.fixed < 0 ? 1 : obj.fixed);
-				unit = "pts";
-				break;
-			default :
-				obj.fixed = (obj.fixed < 0 ? 0 : obj.fixed);
-				break;
-		}
-
-		if (obj.floor) {
-			flt *= Math.pow(10, obj.fixed);
-			flt = Math.floor(flt);
-			flt /= Math.pow(10, obj.fixed);
-			flt = flt.toFixed(obj.fixed);
-		}
-		else {
-			flt = flt.toFixed(obj.fixed);
-		}
-		
-		if (obj.parentheses && flt < 0)
-			return '(' + addCommas(Math.abs(flt)) + ')' + unit;
-		
-		return sign + addCommas(flt) + unit;
-	}
-
-	Utils.formatDate = function(value, origPattern, newPattern)
-	{
-		value = value+'';
-		if (origPattern == null)
-			origPattern = "yyyy-MM-dd HH:mm:ss SSS";
-		if (newPattern == null)
-			newPattern = "MM-dd-yyyy";
-
-		var origPatternParts = origPattern.replace(/[^a-z\s]/gi, ' ').split(/ +/);
-		var origDateParts = value.replace(/[^a-z0-9\s]/gi, ' ').split(/ +/);
-		var newPatternParts = newPattern.replace(/[^a-z\s]/gi, ' ').split(/ +/);
-		var monthList = Options.MONTH.list;
-		
-		var origObj = {};
-		for (var i = 0; i < origPatternParts.length; i++) {
-			origObj[origPatternParts[i]] = origDateParts[i];
-			if (typeof monthList[0][origPatternParts[i]] != 'undefined') {
-				var period = null;
-				for (var j = 0; j < 12; j++) {
-					if (origDateParts[i] == monthList[j][origPatternParts[i]]) {
-						for(key in monthList[j]){
-							origObj[key] = monthList[j][key];
-						}
-						break;
-					}
-				}
-			}
-		}
-		
-		for (var i = 0; i < newPatternParts.length; i++) {
-			newPattern = newPattern.replace(newPatternParts[i], origObj[newPatternParts[i]]);
-		}
-
-		return newPattern;
-	}
-	
-	var addCommas = function(nStr)
-	{
-		nStr += '';
-		x = nStr.split('.');
-		x1 = x[0];
-		x2 = x.length > 1 ? '.' + x[1] : '';
-		var rgx = /(\d+)(\d{3})/;
-		while (rgx.test(x1))
-		{
-			x1 = x1.replace(rgx, '$1' + ',' + '$2');
-		}
-		return x1 + x2;
-	}
-
-	return Utils;
-}]); 
 var Chart = {};
 
 Chart.TYPE = {};
@@ -30541,13 +30383,15 @@ var Report = {
 // @formatter:on
 var Options = {};
 
-app.factory('OptionManager', ['Server', 'Application',
-function(Server, Application)
+app.factory('OptionManager', ['Server',
+function(Server)
 {
 	var OptionManager = {};
 	
 	var visibleOptionList = [];
 	var optionsReady = -1;
+	
+	OptionManager.READY = false;
 	
 	OptionManager.init = function(){
 		optionsReady = Object.keys(Options).length;
@@ -30576,7 +30420,7 @@ function(Server, Application)
 			OptionManager.setSelected(option, option.selected);
 		}
 		if(optionsReady==0)
-			Application.optionReady();
+			OptionManager.READY = true;
 	}
 	
 	OptionManager.setSelected = function(option, value){
@@ -30636,12 +30480,14 @@ function()
 }]); 
 var Settings = {};
 
-app.factory('SettingManager', ['Server', 'Application',
-function(Server, Application)
+app.factory('SettingManager', ['Server',
+function(Server)
 {
 	var SettingsManager = {};
 	
 	var settingsReady = -1;
+	
+	SettingsManager.READY = false;
 	
 	SettingsManager.init = function(){
 		settingsReady = Object.keys(Settings).length;
@@ -30665,11 +30511,140 @@ function(Server, Application)
 	var settingReady = function(setting){
 		settingsReady--;
 		if(settingsReady==0)
-			Application.settingsReady();
+			SettingsManager.READY = true;
 	}
 	
 	SettingsManager.init();
 	return SettingsManager;
+}]); 
+app.factory('Utils', [
+function()
+{
+
+	var Utils = {};
+
+	Utils.formatNumber = function(num, format, passed_obj)
+	{
+		var flt = parseFloat(num), sign = "", unit = "";
+
+		var obj = {
+			fixed : -1,
+			plusVisible : false,
+			zeroHidden : null,
+			floor : false,
+			parentheses : false
+		}
+
+		if (num == null)
+			return "n/a";
+
+		if (passed_obj) {
+			$.each(passed_obj, function(i, n)
+			{
+				obj[i] = n;
+			});
+		}
+
+		if (obj.plusVisible && flt >= 0)
+			sign = "+";
+		if (obj.zeroHidden != null && flt == 0)
+			return obj.zeroHidden;
+
+		switch(format)
+		{
+			case "FIXED":
+				obj.fixed = (obj.fixed < 0 ? 2 : obj.fixed);
+				break;
+			case "FIXED1":
+				obj.fixed = (obj.fixed < 0 ? 1 : obj.fixed);
+				break;
+			case "PERCENT":
+				flt *= 100;
+				obj.fixed = (obj.fixed < 0 ? 1 : obj.fixed);
+				unit = "%";
+				break;
+			case "PERCENT0":
+				flt *= 100;
+				obj.fixed = (obj.fixed < 0 ? 0 : obj.fixed);
+				unit = "%";
+				break;
+			case "POINT":
+				flt *= 100;
+				obj.fixed = (obj.fixed < 0 ? 1 : obj.fixed);
+				unit = "pts";
+				break;
+			default :
+				obj.fixed = (obj.fixed < 0 ? 0 : obj.fixed);
+				break;
+		}
+
+		if (obj.floor) {
+			flt *= Math.pow(10, obj.fixed);
+			flt = Math.floor(flt);
+			flt /= Math.pow(10, obj.fixed);
+			flt = flt.toFixed(obj.fixed);
+		}
+		else {
+			flt = flt.toFixed(obj.fixed);
+		}
+		
+		if (obj.parentheses && flt < 0)
+			return '(' + addCommas(Math.abs(flt)) + ')' + unit;
+		
+		return sign + addCommas(flt) + unit;
+	}
+
+	Utils.formatDate = function(value, origPattern, newPattern)
+	{
+		value = value+'';
+		if (origPattern == null)
+			origPattern = "yyyy-MM-dd HH:mm:ss SSS";
+		if (newPattern == null)
+			newPattern = "MM-dd-yyyy";
+
+		var origPatternParts = origPattern.replace(/[^a-z\s]/gi, ' ').split(/ +/);
+		var origDateParts = value.replace(/[^a-z0-9\s]/gi, ' ').split(/ +/);
+		var newPatternParts = newPattern.replace(/[^a-z\s]/gi, ' ').split(/ +/);
+		var monthList = Options.MONTH.list;
+		
+		var origObj = {};
+		for (var i = 0; i < origPatternParts.length; i++) {
+			origObj[origPatternParts[i]] = origDateParts[i];
+			if (typeof monthList[0][origPatternParts[i]] != 'undefined') {
+				var period = null;
+				for (var j = 0; j < 12; j++) {
+					if (origDateParts[i] == monthList[j][origPatternParts[i]]) {
+						for(key in monthList[j]){
+							origObj[key] = monthList[j][key];
+						}
+						break;
+					}
+				}
+			}
+		}
+		
+		for (var i = 0; i < newPatternParts.length; i++) {
+			newPattern = newPattern.replace(newPatternParts[i], origObj[newPatternParts[i]]);
+		}
+
+		return newPattern;
+	}
+	
+	var addCommas = function(nStr)
+	{
+		nStr += '';
+		x = nStr.split('.');
+		x1 = x[0];
+		x2 = x.length > 1 ? '.' + x[1] : '';
+		var rgx = /(\d+)(\d{3})/;
+		while (rgx.test(x1))
+		{
+			x1 = x1.replace(rgx, '$1' + ',' + '$2');
+		}
+		return x1 + x2;
+	}
+
+	return Utils;
 }]); 
 app.filter('colorArrow', function()
 {	
@@ -30948,6 +30923,76 @@ function($rootScope, $sce, $document, $timeout)
 }]); 
 'use strict';
 
+app.directive('application', ['OptionManager', 'SettingManager', 'Server', 'Application',
+function(OptionManager, SettingManager, Server, Application)
+{
+	return {
+		replace : false,
+		restrict : 'A',
+		scope : {},
+		link : function(scope, element, iAttrs)
+		{
+			scope.$watch(function()
+			{
+				return Server.OFFLINE
+			}, function()
+			{
+				init();
+			});
+
+			scope.$watch(function()
+			{
+				return OptionManager.READY
+			}, function()
+			{
+				checkAppReady();
+			});
+
+			scope.$watch(function()
+			{
+				return SettingManager.READY
+			}, function()
+			{
+				checkAppReady();
+			});
+			
+			Application.init = function(){
+				init();
+			}
+
+			var init = function()
+			{
+				if (!Server.OFFLINE && !Application.READY) {
+					if(!OptionManager.READY)
+						OptionManager.init();
+					if(!SettingManager.READY)
+						SettingManager.init();
+				}
+			}
+			
+			var checkAppReady = function()
+			{
+				if (OptionManager.READY && SettingManager.READY)
+					Application.READY = true;
+			}
+		}
+	};
+}]);
+
+app.factory('Application', [
+function()
+{
+	var Application = {};
+
+	Application.READY = false;
+	
+	Application.init = function(){}
+	
+	return Application;
+}]);
+
+'use strict';
+
 app.directive('infiniteScroll', ['$compile',
 function($compile)
 {
@@ -31085,6 +31130,74 @@ function()
 
 'use strict';
 
+app.directive('login', ['$rootScope', 'Server', 'Application', 'OptionManager', 'SettingManager',
+function($rootScope, Server, Application, OptionManager, SettingManager)
+{
+	return {
+		restrict : 'A',
+		replace : true,
+		templateUrl : 'scripts/core/directives/login/Login.html',
+		scope : {},
+		link : function(scope, element, attrs)
+		{
+			scope.visibility = true;
+			scope.serverWait = false;
+
+			$rootScope.$on(Events.LoginOpen, function()
+			{
+				scope.visibility = true;
+			});
+
+			scope.user = {
+				login : 'tmassart',
+				password : '1234'
+			}
+
+			scope.login = function()
+			{
+				if (validate()) {
+					Server.auth(scope.user.login, scope.user.password, response, error);
+					scope.serverWait = true;
+				}
+			}
+			var validate = function()
+			{
+				if ( typeof scope.user.login == 'undefined' || scope.user.login == '')
+					$rootScope.$emit(Events.Alert, 'StarwoodOne ID is mandatory');
+				else if ( typeof scope.user.password == 'undefined' || scope.user.password == '')
+					$rootScope.$emit(Events.Alert, 'Password is mandatory');
+				else
+					return true;
+				return false;
+			}
+			var response = function(data)
+			{
+				scope.serverWait = false;
+				if (data != 401) {
+					properties.login = scope.user.login;
+					properties.key = data;
+					if (Application.READY == false) {
+						Application.init();
+					}
+					else {
+						$rootScope.$emit(Events.Login);
+					}
+					scope.visibility = false;
+				}
+				else {
+					$rootScope.$emit(Events.Alert, 'Wrong Credentials');
+				}
+			}
+			var error = function(data)
+			{
+				scope.serverWait = false;
+				alert(data);
+			}
+		}
+	};
+}]);
+'use strict';
+
 app.directive('mainMenu', ['$rootScope', 
 function($rootScope)
 {
@@ -31117,8 +31230,8 @@ function($rootScope)
 }]); 
 'use strict';
 
-app.directive('pageModule', ['$rootScope', '$compile', 'Application', 'OptionManager', '$timeout', 'ReportManager', 'Server',
-function($rootScope, $compile, Application, OptionManager, $timeout, ReportManager, Server)
+app.directive('pageModule', ['$rootScope', '$compile', 'Application', 'OptionManager', '$timeout', 'ReportManager',
+function($rootScope, $compile, Application, OptionManager, $timeout, ReportManager)
 {
 	return {
 		templateUrl : 'scripts/core/directives/page-module/PageModule.html',
@@ -31148,19 +31261,10 @@ function($rootScope, $compile, Application, OptionManager, $timeout, ReportManag
 
 			scope.$watch(function()
 			{
-				return Application.APPLICATION_READY;
+				return Application.READY;
 			}, function()
 			{
 				init();
-			});
-			
-			scope.$watch(function()
-			{
-				return Server.OFFLINE
-			}, function()
-			{
-				if(!Server.OFFLINE)
-					init();
 			});
 			
 			$rootScope.$on(Events.HotelChanged, function()
@@ -31203,7 +31307,7 @@ function($rootScope, $compile, Application, OptionManager, $timeout, ReportManag
 					return;
 				}
 				
-				if (Server.OFFLINE || !Application.APPLICATION_READY)
+				if (!Application.READY)
 					return;
 				
 				if (scope.switchPage) {
@@ -31463,7 +31567,7 @@ function($rootScope, $interval, $compile, ngTableParams, DataManager, Applicatio
 				wait(true);
 				scope.reportStatus = 'report-ok';
 				dataList = [];
-				if (Application.APPLICATION_READY) {
+				if (Application.READY) {
 					if ( typeof scope.mustBeSingle != 'undefined') {
 						if (scope.mustBeSingle == true) {
 							if (Options.HOTEL.selected != null && !$.isArray(Options.HOTEL.selected))
@@ -31623,6 +31727,8 @@ function($rootScope, $timeout)
 	
 	return Server;
 }]);
+
+'use strict';
 
 app.directive('serverView', ['Server', '$timeout',
 function(Server, $timeout)
@@ -31810,64 +31916,6 @@ function()
 	};
 }]);
 
-'use strict';
-
-app.controller('LoginCtrl', ['$rootScope', '$scope', 'Server', 'Application', 'OptionManager', 'SettingManager',
-function($rootScope, $scope, Server, Application, OptionManager, SettingManager)
-{
-	$scope.visibility = false;
-	$scope.serverWait = false;
-	
-	$rootScope.$on(Events.LoginOpen, function(){
-		$scope.visibility = true;
-	});
-
-	$scope.user = {
-		login : 'tmassart',
-		password : '1234'
-	}
-
-	$scope.login = function()
-	{
-		if(validate()){
-			Server.auth($scope.user.login, $scope.user.password, response, error);
-			$scope.serverWait = true;
-		}
-	}
-	
-	var validate = function(){
-		if(typeof $scope.user.login == 'undefined' || $scope.user.login == '')
-			$rootScope.$emit(Events.Alert, 'StarwoodOne ID is mandatory');
-		else if(typeof $scope.user.password == 'undefined' || $scope.user.password == '')
-			$rootScope.$emit(Events.Alert, 'Password is mandatory');
-		else return true;
-		return false;
-	}
-	
-	var response = function(data)
-	{
-		$scope.serverWait = false;
-		if (data != 401) {
-			properties.login = $scope.user.login;
-			properties.key = data;
-			if(Application.OPTION_READY == false || Application.SETTINGS_READY == false){
-				OptionManager.init();
-				SettingManager.init();
-			} else {
-				$rootScope.$emit(Events.Login);
-			}
-			$scope.visibility = false;
-		}
-		else {
-			$rootScope.$emit(Events.Alert, 'Wrong Credentials');
-		}
-	}
-	
-	var error = function(data){
-		$scope.serverWait = false;
-		alert(data);
-	}
-}]);
 Options.CURRENCY = {
 	name : 'currency',
 	title : 'Currency : ',
